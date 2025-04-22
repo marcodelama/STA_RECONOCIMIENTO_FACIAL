@@ -98,7 +98,6 @@ class ImagenBiometricaInsightSerializer(serializers.Serializer):
             raise serializers.ValidationError({
                 "error": "La imagen no coincide con ninguna de las registradas para este personal",
                 "sugerencia": "Por favor, verifique que la imagen corresponda a la persona correcta",
-                "distancia":distancia
             })
 
         # 4) Guardar nueva imagen y embedding
@@ -110,3 +109,4 @@ class ImagenBiometricaInsightSerializer(serializers.Serializer):
             d_fecha_creacion = timezone.now()
         )
         return instancia
+    

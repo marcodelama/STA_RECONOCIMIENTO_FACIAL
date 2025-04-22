@@ -14,14 +14,19 @@ from .serializers             import ImagenBiometricaInsightSerializer
         405: 'Método no permitido',
     }
 )
+
 @api_view(['POST'])
 @parser_classes([MultiPartParser])
 def api_registrar_imagen_insight(request):
     serializer = ImagenBiometricaInsightSerializer(data=request.data)
+
     if not serializer.is_valid():
         return Response(serializer.errors, status=400)
+    
     instancia = serializer.save()
+
     per = instancia.n_id_personal
+    
     return Response(
         {"mensaje": f"Imagen registrada para {per.v_nombre} {per.v_ape_pat} {per.v_ape_mat}"},
         status=201

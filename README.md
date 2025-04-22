@@ -1,7 +1,6 @@
 # Requisitos
 pip, python 3.8, acceso a mesa16 (DB)
 
-
 # Ejecutar archivo requirements.txt para instalar dependencias
 pip install -r requirments.txt
 

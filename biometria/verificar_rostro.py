@@ -40,16 +40,18 @@ def verificar_rostro(request):
     nuevo_encoding = np.array(embedding, dtype=np.float32)
 
     # 4) Comparamos con los encodings guardados
-    imagenes = SttrImagen.objects.filter(n_id_personal=id_personal)
+    imagenes = list(SttrImagen.objects.values('n_id_imagen', 'n_id_personal', 'cl_encode'))
+
     mejor_distancia = float('inf')
+    id_personal
     coincidencia_encontrada = False
 
     nuevo_encoding = nuevo_encoding / np.linalg.norm(nuevo_encoding)
-
+    
     for img_bd in imagenes:
         try:
             # Asumiendo que cl_encode es un JSON string de lista de floats
-            encoding_guardado = np.array(json.loads(img_bd.cl_encode), dtype=np.float32)
+            encoding_guardado = np.array(json.loads(img_bd['cl_encode']), dtype=np.float32)
             
             encoding_guardado = encoding_guardado / np.linalg.norm(encoding_guardado)
 
@@ -62,6 +64,11 @@ def verificar_rostro(request):
             # Umbral más apropiado para distancia coseno normalizada
             if distancia < 0.5:  # Ajusta este valor según tus pruebas
                 coincidencia_encontrada = True
+                id_personal = img_bd['n_id_personal']
+                return JsonResponse({
+                    'Coincidencia encontrada',
+                })
+            
         except Exception as e:
             print(f"Error al procesar embedding: {str(e)}")
             continue
@@ -69,7 +76,8 @@ def verificar_rostro(request):
     if coincidencia_encontrada:
         return JsonResponse({
             'mensaje': 'Coincidencia confirmada', 
-            'distancia': round(float(mejor_distancia), 4)
+            'distancia': round(float(mejor_distancia), 4),
+            'personal': id_personal
         }, status=200)
     else:
         return JsonResponse({
