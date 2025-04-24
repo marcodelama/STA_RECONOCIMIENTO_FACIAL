@@ -18,7 +18,6 @@ def verificar_rostro(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'Método no permitido'}, status=405)
 
-    id_personal = request.POST.get('n_id_personal')
     archivo = request.FILES.get('cl_imagen_biometrica')
     if not archivo:
         return JsonResponse({'error': 'Imagen es obligatoria'}, status=400)
@@ -43,7 +42,7 @@ def verificar_rostro(request):
     imagenes = list(SttrImagen.objects.values('n_id_imagen', 'n_id_personal', 'cl_encode'))
 
     mejor_distancia = float('inf')
-    id_personal
+    id_personal = 0
     coincidencia_encontrada = False
 
     nuevo_encoding = nuevo_encoding / np.linalg.norm(nuevo_encoding)
