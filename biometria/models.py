@@ -21,12 +21,11 @@ class SttrAsistencia(models.Model):
     t_hora_llegada = models.DateTimeField(blank=True, null=True)
     t_hora_salida = models.DateTimeField(blank=True, null=True)
     n_id_asignacion = models.ForeignKey('SttxAsignacion', models.DO_NOTHING, db_column='n_id_asignacion')
+    created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
         managed = False
         db_table = 'sttr_asistencia'
-
-
 
 class SttrImagen(models.Model):
     n_id_imagen = models.BigIntegerField(primary_key=True)

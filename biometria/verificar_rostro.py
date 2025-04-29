@@ -3,15 +3,17 @@ import json
 import cv2
 import numpy as np
 from PIL import Image
+from datetime import datetime, time
 from django.http import JsonResponse
+from django.forms.models import model_to_dict
 from django.views.decorators.csrf import csrf_exempt
 
 import insightface
-from .models import SttrImagen, SttmPersonal
+from .models import SttrImagen, SttxAsignacion, SttrAsistencia, SttmPersonal
 
 # Carga el modelo una sola vez
 model = insightface.app.FaceAnalysis(name='buffalo_l', providers=['CPUExecutionProvider'])
-model.prepare(ctx_id=0, det_size=(640, 640))
+model.prepare(ctx_id=-1, det_size=(640, 640))
 
 @csrf_exempt
 def verificar_rostro(request):
@@ -29,7 +31,6 @@ def verificar_rostro(request):
 
     # 2) Detectamos rostros + embeddings
     rostros = model.get(img_bgr)
-    print(f"Detectados {len(rostros)} rostros en la imagen")
 
     if not rostros:
         return JsonResponse({'error': 'No se detectó ningún rostro'}, status=400)
@@ -39,7 +40,7 @@ def verificar_rostro(request):
     nuevo_encoding = np.array(embedding, dtype=np.float32)
 
     # 4) Comparamos con los encodings guardados
-    imagenes = list(SttrImagen.objects.values('n_id_imagen', 'n_id_personal', 'cl_encode'))
+    imagenes = list(SttrImagen.objects.values('n_id_imagen', 'n_id_personal', 'cl_encode', 'd_fecha_creacion'))
 
     mejor_distancia = float('inf')
     id_personal = 0
@@ -73,11 +74,57 @@ def verificar_rostro(request):
             continue
 
     if coincidencia_encontrada:
-        return JsonResponse({
-            'mensaje': 'Coincidencia confirmada', 
-            'distancia': round(float(mejor_distancia), 4),
-            'personal': id_personal
-        }, status=200)
+            asignacion = SttxAsignacion.objects.filter(n_id_personal=id_personal, n_id_turno__d_fecha = datetime.now().date()).select_related('n_id_turno').first()
+
+            if not asignacion:
+                return JsonResponse({
+                    'error': 'No se encontró asignación para el personal', 
+                    'mejor_distancia': round(float(mejor_distancia), 4),
+                    'id_personal': id_personal,
+                    'mejor_distancia': round(float(mejor_distancia), 4)
+                }, status=400)
+            else:
+                asistencia = SttrAsistencia.objects.filter(n_id_asignacion=asignacion.n_id_asignacion).first()
+                personal = SttmPersonal.objects.get(n_id_personal=id_personal)
+
+                if asistencia:
+                    if asistencia.t_hora_salida:
+                        diferencia = asistencia.t_hora_salida - asistencia.t_hora_llegada
+    
+                        return JsonResponse({
+                            'mensaje': f'La salida fue marcada a las {asistencia.t_hora_salida}',
+                            'personal': f'{personal.v_nombre} {personal.v_ape_pat} {personal.v_ape_mat}',
+                            'fecha_creacion': img_bd['d_fecha_creacion'],
+                            'horas_trabajadas' : str(diferencia),
+                            'id_personal': personal.n_id_personal,
+                            'mejor_distancia': round(float(mejor_distancia), 4)
+                        })
+                    
+                    elif asistencia.t_hora_llegada:
+                        diferencia = datetime.now() - datetime.combine(asistencia.t_hora_llegada, time.min)
+
+                        asistencia.t_hora_salida = datetime.now()
+                        asistencia.save()
+
+                        mensaje = f'Salida marcada. Horas registradas: {str(diferencia)} para {personal.v_nro_doc}: {personal.v_nombre}, {personal.v_ape_pat}'
+                        personal = f'{personal.v_nombre} {personal.v_ape_pat} {personal.v_ape_mat}'
+                                    
+                        return JsonResponse({'mensaje': mensaje, 'personal': personal, 'id_personal': id_personal, 'mejor_distancia': round(float(mejor_distancia), 4)}, status=200)
+                
+                else:
+                    asistencia = SttrAsistencia(
+                        t_hora_llegada = datetime.now(),
+                        n_id_asignacion = asignacion
+                    )
+                    asistencia.save()
+                                
+                    return JsonResponse({
+                        'mensaje': f'Asistencia registrada de {personal.v_nombre} {personal.v_ape_pat} {personal.v_ape_mat}',
+                        'id_personal': personal.n_id_personal,
+                        'hora_llegada': datetime.now().strftime('%H:%M:%S'),
+                        'mejor_distancia': round(float(mejor_distancia), 4)
+                    }, status=200)
+
     else:
         return JsonResponse({
             'error': 'No coincide con registros', 
