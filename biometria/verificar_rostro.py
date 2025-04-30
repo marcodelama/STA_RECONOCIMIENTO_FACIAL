@@ -7,6 +7,7 @@ from datetime import datetime, time
 from django.http import JsonResponse
 from django.forms.models import model_to_dict
 from django.views.decorators.csrf import csrf_exempt
+from django.utils import timezone
 
 import insightface
 from .models import SttrImagen, SttxAsignacion, SttrAsistencia, SttmPersonal
@@ -62,7 +63,7 @@ def verificar_rostro(request):
                 mejor_distancia = distancia
                 
             # Umbral más apropiado para distancia coseno normalizada
-            if distancia < 0.5:  # Ajusta este valor según tus pruebas
+            if distancia < 0.6:  # Ajusta este valor según tus pruebas
                 coincidencia_encontrada = True
                 id_personal = img_bd['n_id_personal']
                 return JsonResponse({
@@ -82,13 +83,14 @@ def verificar_rostro(request):
                     'mejor_distancia': round(float(mejor_distancia), 4),
                     'id_personal': id_personal,
                     'mejor_distancia': round(float(mejor_distancia), 4)
-                }, status=400)
+                }, status=200)
             else:
                 asistencia = SttrAsistencia.objects.filter(n_id_asignacion=asignacion.n_id_asignacion).first()
                 personal = SttmPersonal.objects.get(n_id_personal=id_personal)
 
                 if asistencia:
                     if asistencia.t_hora_salida:
+                    
                         diferencia = asistencia.t_hora_salida - asistencia.t_hora_llegada
     
                         return JsonResponse({
@@ -101,10 +103,13 @@ def verificar_rostro(request):
                         })
                     
                     elif asistencia.t_hora_llegada:
-                        diferencia = datetime.now() - datetime.combine(asistencia.t_hora_llegada, time.min)
 
-                        asistencia.t_hora_salida = datetime.now()
+                        asistencia.t_hora_salida = timezone.now()
+
+                        asistencia.t_diferencia_horas = asistencia.t_hora_salida - asistencia.t_hora_llegada
                         asistencia.save()
+
+                        diferencia = asistencia.t_diferencia_horas
 
                         mensaje = f'Salida marcada. Horas registradas: {str(diferencia)} para {personal.v_nro_doc}: {personal.v_nombre}, {personal.v_ape_pat}'
                         personal = f'{personal.v_nombre} {personal.v_ape_pat} {personal.v_ape_mat}'
@@ -113,7 +118,7 @@ def verificar_rostro(request):
                 
                 else:
                     asistencia = SttrAsistencia(
-                        t_hora_llegada = datetime.now(),
+                        t_hora_llegada = timezone.now(),
                         n_id_asignacion = asignacion
                     )
                     asistencia.save()

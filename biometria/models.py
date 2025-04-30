@@ -20,6 +20,7 @@ class SttrAsistencia(models.Model):
     n_id_asistencia = models.BigIntegerField(primary_key=True)
     t_hora_llegada = models.DateTimeField(blank=True, null=True)
     t_hora_salida = models.DateTimeField(blank=True, null=True)
+    t_diferencia_horas = models.DurationField(blank=True, null=True)
     n_id_asignacion = models.ForeignKey('SttxAsignacion', models.DO_NOTHING, db_column='n_id_asignacion')
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -31,7 +32,7 @@ class SttrImagen(models.Model):
     n_id_imagen = models.BigIntegerField(primary_key=True)
     d_fecha_creacion = models.DateField()
     cl_encode = models.TextField(blank=True, null=True)
-    cl_ruta_archivo = models.ImageField(upload_to='personas/')
+    cl_ruta_archivo = models.ImageField(upload_to='')
     n_id_personal = models.ForeignKey(SttmPersonal, models.DO_NOTHING, db_column='n_id_personal')
 
     class Meta:

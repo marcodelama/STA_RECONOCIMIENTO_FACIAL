@@ -25,6 +25,6 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('biometria/', include([
         path('verificar/', verificar_rostro, name='verificar_rostro'),
-        path('registrar-imagen-insight/', api_registrar_imagen_insight, name='registrar_imagen_insight'),
+        path('registrar-imagen/', api_registrar_imagen_insight, name='registrar_imagen_insight'),
     ])),
 ] + static(settings.MEDIA_URL, document_root=settings.MEDIA_ROOT)
